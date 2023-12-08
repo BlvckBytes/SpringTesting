@@ -88,8 +88,11 @@ class BodyValidator {
     if (body == null)
       throw AssertionError("Expected a body to be present")
 
-    for (keyValidator in keyValidators)
-      keyValidator.validator.validate(body.get(keyValidator.key))
+    for (keyValidator in keyValidators) {
+      val key = keyValidator.key
+      val value = if (body.has(key)) body.get(key) else null
+      keyValidator.validator.validate(value)
+    }
 
     return this
   }
