@@ -2,8 +2,6 @@ package me.blvckbytes.springtesting.validation
 
 import me.blvckbytes.springtesting.http.HttpClient
 import me.blvckbytes.springtesting.http.MultiValueStringMapBuilder
-import org.json.JSONArray
-import org.json.JSONObject
 
 object PaginationItemsValidator {
 
@@ -30,15 +28,9 @@ object PaginationItemsValidator {
       else if (totalItems != cursorTotalItems)
         throw AssertionError("Total item count changed while paginating! $totalItems -> $cursorTotalItems")
 
-      val itemsList = response.extractValue("items", JSONArray::class)
-      val numberOfItems = itemsList.length()
+      val jsonItems = response.extractObjectArray("items").map { JsonObjectExtractor(it) }
 
-      itemValidatorLoop@ for (i in 0 until numberOfItems) {
-        val currentItem = itemsList.get(i)
-
-        if (currentItem !is JSONObject)
-          throw AssertionError("Expected item $i to be an object, but got a ${itemsList.javaClass.simpleName}")
-
+      itemValidatorLoop@ for (currentItem in jsonItems) {
         for (remainingValidatorIndex in remainingValidators.indices) {
           val validator = remainingValidators[remainingValidatorIndex]
           try {
@@ -50,10 +42,10 @@ object PaginationItemsValidator {
           }
         }
 
-        throw AssertionError("An item didn't match on any remaining validator: $currentItem")
+        throw AssertionError("An item didn't match on any remaining validator (${remainingValidators.size}): ${currentItem.body?.toString(2)}")
       }
 
-      seenItems += numberOfItems
+      seenItems += jsonItems.size
       paginationMap.override("selectedPage", ++selectedPage)
     } while (seenItems < totalItems!!)
 

@@ -5,8 +5,6 @@ import me.blvckbytes.springtesting.http.HttpStatus
 import me.blvckbytes.springtesting.validation.validator.LocalDateTimeKeyValidator
 import me.blvckbytes.springtesting.validation.validator.UUIDKeyValidator
 import org.json.JSONObject
-import java.util.*
-import kotlin.reflect.KClass
 
 class BodyValidator {
 
@@ -33,17 +31,6 @@ class BodyValidator {
       return result
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <T> checkTypeAndOtherwiseThrow(key: String, expectedType: KClass<T>, value: Any?, handler: (value: T?) -> Unit) where T : Any {
-      if (value == null || value.equals(null))
-        return handler(null)
-
-      if (!expectedType.isInstance(value))
-        throw AssertionError("Expected property $key to be a ${expectedType.simpleName}, but got ${value?.javaClass?.simpleName}")
-
-      handler(value as T)
-    }
-
     private fun throwUnexpectedValueError(key: String, expected: Any?, actual: Any?) {
       throw AssertionError("Expected $key to be equal to $expected, but got $actual")
     }
@@ -56,44 +43,72 @@ class BodyValidator {
     return this
   }
 
-  fun validateString(key: String, validator: (value: String?) -> Unit): BodyValidator {
-    keyValidators.add(KeyValidator(key) {
-      checkTypeAndOtherwiseThrow(key, String::class, it, validator)
-    })
-    return this
-  }
-
-  fun validateInt(key: String, validator: (value: Int?) -> Unit): BodyValidator {
-    keyValidators.add(KeyValidator(key) {
-      checkTypeAndOtherwiseThrow(key, Int::class, it, validator)
-    })
-    return this
-  }
-
   fun expectString(key: String, value: String?): BodyValidator {
-    return validateString(key) {
+    keyValidators.add(KeyValidator({
+      it.extractValueIfExists(key, String::class)
+    }){
       if (it != value)
         throwUnexpectedValueError(key, value, it)
-    }
+    })
+    return this
   }
 
   fun expectInt(key: String, value: Int?): BodyValidator {
-    return validateInt(key) {
+    keyValidators.add(KeyValidator({
+      it.extractValueIfExists(key, Int::class)
+    }){
       if (it != value)
         throwUnexpectedValueError(key, value, it)
-    }
+    })
+    return this
   }
 
-  fun apply(body: JSONObject?): BodyValidator {
-    if (body == null)
-      throw AssertionError("Expected a body to be present")
+  fun expectArray(key: String, validators: List<BodyValidator>): BodyValidator {
+    keyValidators.add(KeyValidator({
+      it.extractObjectArray(key)
+    }) { jsonObjects ->
+      @Suppress("UNCHECKED_CAST")
+      jsonObjects as List<JSONObject>
 
-    for (keyValidator in keyValidators) {
-      val key = keyValidator.key
-      val value = if (body.has(key)) body.get(key) else null
-      keyValidator.validator.validate(value)
-    }
+      if (jsonObjects.size != validators.size)
+        throw AssertionError("Expected the array at key $key to be of length ${validators.size}")
+
+      val remainingItems = mutableListOf<JsonObjectExtractor>()
+
+      for (jsonObject in jsonObjects)
+        remainingItems.add(JsonObjectExtractor(jsonObject))
+
+      validatorLoop@ for (validator in validators) {
+        for (remainingItemIndex in remainingItems.indices) {
+          try {
+            validator.apply(remainingItems[remainingItemIndex])
+            remainingItems.removeAt(remainingItemIndex)
+            continue@validatorLoop
+          } catch (exception: AssertionError) {
+            continue
+          }
+        }
+
+        throw AssertionError("A validator did not find a match")
+      }
+    })
 
     return this
+  }
+
+  fun apply(response: JsonObjectExtractor): BodyValidator {
+    if (response.body == null)
+      throw AssertionError("Expected a body to be present")
+
+    for (keyValidator in keyValidators)
+      keyValidator.validator.validate(keyValidator.extractor(response))
+
+    return this
+  }
+
+  fun copyOf(): BodyValidator {
+    val copy = BodyValidator()
+    copy.keyValidators.addAll(this.keyValidators)
+    return copy
   }
 }

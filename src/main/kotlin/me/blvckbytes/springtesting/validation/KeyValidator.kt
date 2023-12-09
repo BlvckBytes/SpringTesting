@@ -1,6 +1,6 @@
 package me.blvckbytes.springtesting.validation
 
 open class KeyValidator(
-  val key: String,
-  val validator: ValidatorFunction
+  val extractor: (response: JsonObjectExtractor) -> Any?,
+  val validator: ValidatorFunction<Any?>
 )
