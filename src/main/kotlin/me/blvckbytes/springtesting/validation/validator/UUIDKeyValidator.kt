@@ -3,18 +3,16 @@ package me.blvckbytes.springtesting.validation.validator
 import me.blvckbytes.springtesting.validation.KeyValidator
 import java.util.*
 
-class UUIDKeyValidator(key: String, nullable: Boolean = false) : KeyValidator(
+class UUIDKeyValidator(key: String, nullability: Nullability) : KeyValidator(
   {
-    it.extractValueIfExists(key, String::class, nullable)
+    it.extractValueIfExists(key, String::class, nullability.readNullable)
   },
   validator@ {
-    if (nullable && it == null)
+    if (nullability.assertNullabilityReturnIsNull(key, it))
       return@validator
 
-    it as String
-
     try {
-      UUID.fromString(it)
+      UUID.fromString(it as String)
     } catch (exception: Exception) {
       throw AssertionError("Expected $key to be a UUID, but got $it")
     }

@@ -3,6 +3,7 @@ package me.blvckbytes.springtesting.validation
 import me.blvckbytes.springcommon.exception.DescribedException
 import me.blvckbytes.springtesting.http.HttpStatus
 import me.blvckbytes.springtesting.validation.validator.LocalDateTimeKeyValidator
+import me.blvckbytes.springtesting.validation.validator.Nullability
 import me.blvckbytes.springtesting.validation.validator.UUIDKeyValidator
 import org.json.JSONObject
 
@@ -11,9 +12,9 @@ class BodyValidator {
   companion object {
     fun makeBase(): BodyValidator {
       return BodyValidator()
-        .add(UUIDKeyValidator("id"))
-        .add(LocalDateTimeKeyValidator("createdAt"))
-        .add(LocalDateTimeKeyValidator("updatedAt", true))
+        .add(UUIDKeyValidator("id", Nullability.NOT_NULL))
+        .add(LocalDateTimeKeyValidator("createdAt", Nullability.NOT_NULL))
+        .add(LocalDateTimeKeyValidator("updatedAt", Nullability.MAY_BE_NULL))
     }
 
     fun makeForError(status: HttpStatus, error: DescribedException): BodyValidator {
@@ -23,7 +24,7 @@ class BodyValidator {
     fun makeForError(status: HttpStatus, message: String? = null): BodyValidator {
       val result = BodyValidator()
         .expectString("status", status.name)
-        .add(LocalDateTimeKeyValidator("timestamp"))
+        .add(LocalDateTimeKeyValidator("timestamp", Nullability.NOT_NULL))
 
       if (message != null)
         result.expectString("message", message)
