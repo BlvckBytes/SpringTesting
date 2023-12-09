@@ -7,8 +7,13 @@ import org.json.JSONObject
 
 object PaginationItemsValidator {
 
-  fun ensureItemsExistence(path: String, pageSize: Int, itemValidators: List<BodyValidator>) {
-    val paginationMap = buildBasePaginationMap(pageSize)
+  fun ensureItemsExistence(
+    path: String,
+    pageSize: Int,
+    itemValidators: List<BodyValidator>,
+    fixedOrderSortingKeys: List<String>,
+  ) {
+    val paginationMap = buildBasePaginationMap(pageSize, fixedOrderSortingKeys)
     var totalItems: Int? = null
     var seenItems = 0
     var selectedPage = 1
@@ -59,13 +64,16 @@ object PaginationItemsValidator {
       throw AssertionError("Expected all item validators to find a match, but ${remainingValidators.size} remained unmatched")
   }
 
-  private fun buildBasePaginationMap(pageSize: Int): MultiValueStringMapBuilder {
+  private fun buildBasePaginationMap(
+    pageSize: Int,
+    fixedOrderSortingKeys: List<String>,
+  ): MultiValueStringMapBuilder {
     val result = MultiValueStringMapBuilder()
 
     result.add("pageSize", pageSize)
 
     // Required to ensure a fixed item order while paging
-    result.add("sorting", "+id")
+    result.add("sorting", fixedOrderSortingKeys.joinToString(",") { "+$it" })
 
     return result
   }
