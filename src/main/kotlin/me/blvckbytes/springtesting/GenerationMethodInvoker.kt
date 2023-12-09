@@ -1,6 +1,6 @@
 package me.blvckbytes.springtesting
 
-import me.blvckbytes.springtesting.validation.CreationResult
+import me.blvckbytes.springtesting.validation.EnumGenerationState
 import org.testcontainers.shaded.com.google.common.math.IntMath.pow
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
@@ -10,9 +10,8 @@ import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.typeOf
 
-class GenerationMethodInvoker(
-  private val creationMethod: KFunction<CreationResult>,
-  private val invocationParameters: List<Any>? = null
+class GenerationMethodInvoker<T : Any>(
+  private val creationMethod: KFunction<T>,
 ) {
 
   init {
@@ -25,9 +24,13 @@ class GenerationMethodInvoker(
 
   private val random = ThreadLocalRandom.current()
   private val generatedValues = mutableMapOf<KType, MutableSet<Any>>()
+  private val enumGenerationStates = mutableMapOf<Class<*>, EnumGenerationState>()
 
-  fun callForAllNullCombinations(minNumberOfResults: Int? = null): List<CreationResult> {
-    val result = mutableListOf<CreationResult>()
+  fun callForAllNullCombinations(
+    minNumberOfResults: Int? = null,
+    invocationParameters: List<Any>? = null,
+  ): List<T> {
+    val result = mutableListOf<T>()
 
     val parameters = creationMethod.parameters
     val nullableParameterIndices = parameters.mapIndexedNotNull { index, parameter ->
@@ -55,7 +58,7 @@ class GenerationMethodInvoker(
             continue
           }
 
-          parameterValues[parameterIndex] = generateUniqueRandomValue(parameter.type)
+          parameterValues[parameterIndex] = generateValue(parameter.type)
           continue
         }
 
@@ -81,7 +84,7 @@ class GenerationMethodInvoker(
     return result
   }
 
-  fun callRandomized(): CreationResult {
+  fun callRandomized(invocationParameters: List<Any>? = null): T {
     val parameters = creationMethod.parameters
     val parameterValues = arrayOfNulls<Any>(parameters.size)
     var invocationParametersIndex = 0
@@ -99,7 +102,7 @@ class GenerationMethodInvoker(
         continue
       }
 
-      parameterValues[parameterIndex] = generateUniqueRandomValue(parameter.type)
+      parameterValues[parameterIndex] = generateValue(parameter.type)
     }
 
     return creationMethod.call(*parameterValues)
@@ -116,6 +119,31 @@ class GenerationMethodInvoker(
     }
 
     return result.toString()
+  }
+
+  private fun tryLoadClass(type: KType): Class<*>? {
+    return try {
+      var typeString = type.toString()
+
+      if (typeString.endsWith('?'))
+        typeString = typeString.substring(0, typeString.length - 1)
+
+      Class.forName(typeString)
+    } catch (exception: ClassNotFoundException) {
+      null
+    }
+  }
+
+  private fun generateValue(type: KType): Any {
+    val typeClass = tryLoadClass(type)
+
+    if (typeClass?.isEnum == true) {
+      return enumGenerationStates.computeIfAbsent(typeClass) {
+        EnumGenerationState(typeClass)
+      }.next()
+    }
+
+    return generateUniqueRandomValue(type)
   }
 
   private fun generateUniqueRandomValue(type: KType): Any {
