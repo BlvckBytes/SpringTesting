@@ -109,6 +109,9 @@ class GenerationMethodInvoker<T : Any>(
   }
 
   private fun generateRandomAsciiString(length: Int): String {
+    if (length == 0)
+      throw IllegalStateException("Length cannot be zero")
+
     val result = StringBuilder()
 
     while (result.isBlank()) {
@@ -152,7 +155,7 @@ class GenerationMethodInvoker<T : Any>(
     do {
       generatedValue = when (type) {
         typeOf<String>(),
-        typeOf<String?>() -> generateRandomAsciiString(random.nextInt(128 + 1))
+        typeOf<String?>() -> generateRandomAsciiString(random.nextInt(128) + 1)
         typeOf<Int>(),
         typeOf<Int?>() -> ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE)
         typeOf<UUID>(),
