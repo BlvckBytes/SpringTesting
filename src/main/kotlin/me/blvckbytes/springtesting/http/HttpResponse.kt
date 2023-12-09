@@ -2,6 +2,7 @@ package me.blvckbytes.springtesting.http
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 
@@ -64,7 +65,10 @@ class HttpResponse(
       throw IllegalStateException("Don't know how to access a node of type ${currentNode.javaClass.simpleName}")
     }
 
-    if (!type.isInstance(currentNode))
+    if (type == UUID::class && currentNode is String)
+      return type.cast(UUID.fromString(currentNode))
+
+    else if (!type.isInstance(currentNode))
       throw AssertionError("Expected type ${type.simpleName} at path $path, but found ${currentNode?.javaClass?.simpleName}")
 
     return type.cast(currentNode)

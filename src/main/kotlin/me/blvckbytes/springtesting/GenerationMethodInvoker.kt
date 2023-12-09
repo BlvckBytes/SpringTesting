@@ -47,17 +47,17 @@ class GenerationMethodInvoker<T : Any>(
         val parameter = parameters[parameterIndex]
         val nullMaskBitIndex = nullableParameterIndices.indexOf(parameterIndex)
 
-        if (nullMaskBitIndex < 0 || nullMask and (1 shl nullMaskBitIndex) == 0) {
-          if (parameter.hasAnnotation<InvokerParam>()) {
-            parameterValues[parameterIndex] = (
-              if (invocationParameters == null)
-                null
-              else
-                invocationParameters[invocationParametersIndex++]
-            )
-            continue
-          }
+        if (parameter.hasAnnotation<InvokerParam>()) {
+          parameterValues[parameterIndex] = (
+            if (invocationParameters == null)
+              null
+            else
+              invocationParameters[invocationParametersIndex++]
+          )
+          continue
+        }
 
+        if (nullMaskBitIndex < 0 || nullMask and (1 shl nullMaskBitIndex) == 0) {
           parameterValues[parameterIndex] = generateValue(parameter.type)
           continue
         }
@@ -77,7 +77,7 @@ class GenerationMethodInvoker<T : Any>(
 
       if (missingItems > 0) {
         for (i in 0 until missingItems)
-          result.add(callRandomized())
+          result.add(callRandomized(invocationParameters))
       }
     }
 
