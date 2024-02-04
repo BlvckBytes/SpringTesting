@@ -18,6 +18,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-test")
     implementation("org.springframework.boot:spring-boot-testcontainers")
@@ -25,6 +26,7 @@ dependencies {
     implementation("org.testcontainers:mysql")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter")
     implementation("me.blvckbytes:SpringCommon:0.1")
+    implementation("org.json:json:20231013")
     testImplementation(kotlin("test"))
 }
 

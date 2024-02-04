@@ -1,5 +1,6 @@
 package me.blvckbytes.springtesting.http
 
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -20,6 +21,17 @@ object HttpClient {
     requestBody: JSONObject? = null
   ): HttpResponse {
     val requestUrl = URL(buildTargetPath(path, requestParams))
+    return performRequest(requestUrl, requestMethod, requestHeaders, requestParams, requestBody)
+  }
+
+  fun performRequest(
+    url: URL,
+    requestMethod: HttpMethod,
+    requestHeaders: MultiValueStringMapBuilder = MultiValueStringMapBuilder(),
+    requestParams: MultiValueStringMapBuilder = MultiValueStringMapBuilder(),
+    requestBody: JSONObject? = null
+  ): HttpResponse {
+    val requestUrl = addParametersToUrl(url, requestParams)
     val connection = requestUrl.openConnection() as HttpURLConnection
 
     requestHeaders.override("Content-Type", "application/json")
@@ -38,7 +50,7 @@ object HttpClient {
       }
     }
 
-    val responseString = BufferedReader(InputStreamReader(
+    var responseString = BufferedReader(InputStreamReader(
       if (connection.responseCode in 200..299)
         connection.inputStream
       else
@@ -52,6 +64,24 @@ object HttpClient {
       responseBuilder.toString()
     }
 
+    // JSON is specified to start with a top-level object, but some people
+    // nonetheless insist on responding with top-level arrays...
+    if (responseString.startsWith('['))
+      responseString = "{\"items\": $responseString}"
+
+    // The body could be malformed
+    val responseBody = (
+      if (responseString.isNotBlank()) {
+        try {
+          JSONObject(responseString)
+        } catch (ignored: JSONException) {
+          null
+        }
+      }
+      else
+        null
+    )
+
     return HttpResponse(
       HttpRequest(
         requestUrl.toString(),
@@ -60,7 +90,8 @@ object HttpClient {
         requestBody
       ),
       connection.responseCode,
-      if (responseString.isEmpty()) null else JSONObject(responseString),
+      responseBody,
+      responseString,
       connection.headerFields
     )
   }
@@ -106,6 +137,21 @@ object HttpClient {
       result += "?$parameterString"
 
     return result
+  }
+
+  fun addParametersToUrl(url: URL, requestParams: MultiValueStringMapBuilder): URL {
+    val parameterString = buildRequestParameterString(requestParams)
+
+    if (parameterString.isEmpty())
+      return url
+
+    val urlString = url.toString()
+    val parametersDelimiterIndex = urlString.indexOf('?')
+
+    if (parametersDelimiterIndex < 0)
+      return URL("$urlString?$parameterString")
+
+    return URL("${urlString.substring(0, parametersDelimiterIndex)}?$parameterString")
   }
 
   private fun joinPaths(vararg paths: String): String {
