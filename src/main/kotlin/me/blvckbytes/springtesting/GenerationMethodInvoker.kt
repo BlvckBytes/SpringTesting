@@ -1,9 +1,9 @@
 package me.blvckbytes.springtesting
 
 import me.blvckbytes.springtesting.validation.EnumGenerationState
-import org.testcontainers.shaded.com.google.common.math.IntMath.pow
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import kotlin.math.pow
 import kotlin.reflect.KFunction
 import kotlin.reflect.KType
 import kotlin.reflect.full.hasAnnotation
@@ -39,7 +39,7 @@ class GenerationMethodInvoker<T : Any>(
 
     var nullMask = 0
 
-    for (permutationIndex in 0 until pow(2, nullableParameterIndices.size)) {
+    for (permutationIndex in 0 until 2.0.pow(nullableParameterIndices.size).toInt()) {
       val parameterValues = arrayOfNulls<Any>(parameters.size)
       var invocationParametersIndex = 0
 
