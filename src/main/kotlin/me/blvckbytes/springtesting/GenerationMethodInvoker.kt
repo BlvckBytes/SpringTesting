@@ -1,6 +1,5 @@
 package me.blvckbytes.springtesting
 
-import me.blvckbytes.springtesting.validation.EnumGenerationState
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.pow

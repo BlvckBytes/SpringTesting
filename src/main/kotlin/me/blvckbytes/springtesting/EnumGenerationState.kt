@@ -1,4 +1,4 @@
-package me.blvckbytes.springtesting.validation
+package me.blvckbytes.springtesting
 
 class EnumGenerationState(
   enumClass: Class<*>

@@ -25,8 +25,10 @@ dependencies {
     implementation("org.testcontainers:junit-jupiter")
     implementation("org.testcontainers:mysql")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter")
+
+    implementation("me.blvckbytes:SpringHttpTesting:0.1")
     implementation("me.blvckbytes:SpringCommon:0.1")
-    implementation("org.json:json:20231013")
+
     testImplementation(kotlin("test"))
 }
 
