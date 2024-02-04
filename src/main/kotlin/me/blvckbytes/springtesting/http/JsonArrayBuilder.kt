@@ -56,4 +56,8 @@ class JsonArrayBuilder private constructor(jsonArray: JSONArray? = null){
     jsonArray.put(JsonObjectBuilder.empty(valueBuilder).jsonObject)
     return this
   }
+
+  override fun toString(): String {
+    return jsonArray.toString(2)
+  }
 }

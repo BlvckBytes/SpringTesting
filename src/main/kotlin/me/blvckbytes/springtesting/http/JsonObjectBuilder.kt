@@ -81,4 +81,8 @@ class JsonObjectBuilder private constructor(jsonObject: JSONObject? = null) {
     jsonObject.put(key, empty(valueBuilder).jsonObject)
     return this
   }
+
+  override fun toString(): String {
+    return jsonObject.toString(2)
+  }
 }
