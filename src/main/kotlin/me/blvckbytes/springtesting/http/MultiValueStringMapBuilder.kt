@@ -24,6 +24,12 @@ class MultiValueStringMapBuilder {
     return override(key, value.toString())
   }
 
+  fun copy(): MultiValueStringMapBuilder {
+    val result = MultiValueStringMapBuilder()
+    result.headerMap.putAll(headerMap)
+    return result
+  }
+
   fun apply(connection: HttpURLConnection) {
     for (entry in headerMap) {
       for (value in entry.value) {
