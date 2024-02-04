@@ -2,6 +2,7 @@ package me.blvckbytes.springtesting.validation
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.math.BigDecimal
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
@@ -9,6 +10,32 @@ import kotlin.reflect.cast
 open class JsonObjectExtractor(
   val body: JSONObject?
 ) {
+
+  fun <T : Any> extractTypedArray(path: String, type: KClass<T>): List<T?> {
+    val jsonArray = extractValue(path, JSONArray::class)
+    val arrayItems = mutableListOf<T?>()
+
+    for (itemIndex in 0 until jsonArray.length()) {
+      val item = jsonArray[itemIndex]
+
+      if (item == JSONObject.NULL) {
+        arrayItems.add(null)
+        continue
+      }
+
+      if (!type.isInstance(item))
+        throw AssertionError("Expected item $itemIndex to be of type ${type.simpleName}, but got a ${item.javaClass.simpleName}")
+
+      arrayItems.add(type.cast(item))
+    }
+
+    return arrayItems
+  }
+
+  fun extractAnyArray(path: String): List<Any> {
+    return extractValue(path, JSONArray::class).toList()
+  }
+
   fun extractObjectArray(path: String): List<JSONObject> {
     val jsonArray = extractValue(path, JSONArray::class)
     val arrayItems = mutableListOf<JSONObject>()
@@ -71,13 +98,25 @@ open class JsonObjectExtractor(
     if (type == UUID::class && currentNode is String)
       return type.cast(UUID.fromString(currentNode))
 
+    if (currentNode is BigDecimal) {
+      if (type == Float::class)
+        return type.cast(currentNode.toFloat())
+
+      if (type == Double::class)
+        return type.cast(currentNode.toDouble())
+    }
+
     else if (!type.isInstance(currentNode))
-      throw AssertionError("Expected type ${type.simpleName} at path $path, but found $currentNode")
+      throw AssertionError("Expected type ${type.simpleName} at path $path, but found $currentNode (${currentNode.javaClass.simpleName})")
 
     return type.cast(currentNode)
   }
 
   fun <T> extractValue(path: String, type: KClass<T>): T where T : Any {
     return extractValueIfExists(path, type, false)!!
+  }
+
+  override fun toString(): String {
+    return body?.toString(2) ?: "null"
   }
 }
